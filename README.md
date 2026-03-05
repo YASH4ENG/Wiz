@@ -1,1 +1,1 @@
-This is Wiz exercise
+This is Wiz exercise no sectere
