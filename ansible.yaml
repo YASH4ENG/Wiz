@@ -1,0 +1,38 @@
+---
+- name: Deploy Non-Compliant Azure VNet (Triggers Missing NSG CCR Rule)
+  hosts: localhost
+  connection: local
+  vars:
+    resource_group: "rg-wiz-test-compliance"
+    location: "eastus"
+    vnet_name: "vnet-noncompliant-demo"
+
+  tasks:
+    - name: Create a Resource Group
+      azure.azcollection.azure_rm_resourcegroup:
+        name: "{{ resource_group }}"
+        location: "{{ location }}"
+
+    - name: Deploy VNet with Unprotected and Exempt Subnets
+      azure.azcollection.azure_rm_virtualnetwork:
+        resource_group: "{{ resource_group }}"
+        name: "{{ vnet_name }}"
+        address_prefixes:
+          - "10.0.0.0/16"
+        subnets:
+          # 1. This subnet will TRIGGER the Wiz CCR failure because it lacks an NSG
+          - name: "vulnerable-app-subnet"
+            address_prefix: "10.0.1.0/24"
+            # Explicitly omitting the network_security_group parameter here
+
+          # 2. This subnet will be IGNORED by the rule (Exempt)
+          - name: "GatewaySubnet"
+            address_prefix: "10.0.2.0/24"
+
+          # 3. This subnet will also be IGNORED by the rule (Exempt)
+          - name: "AzureBastionSubnet"
+            address_prefix: "10.0.3.0/24"
+
+    - name: Output results
+      ansible.builtin.debug:
+        msg: "Non-compliant VNet '{{ vnet_name }}' deployed. Run your Wiz scan now to verify the CCR rule failure."
